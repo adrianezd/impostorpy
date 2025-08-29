@@ -1,27 +1,41 @@
 {% extends "base.html" %}
-
-{% block title %}Sala {{ room.name }} - Juego del Blanco{% endblock %}
-{% block header %}🎮 Sala: {{ room.name }}{% endblock %}
-
+{% block title %}Sala {{ room.name }}{% endblock %}
 {% block content %}
-<p class="text-lg text-gray-700 mb-4">
-  Comparte este enlace con tus amigos:
-</p>
+<h1 class="text-2xl font-bold text-purple-700 mb-6 text-center">
+  🎭 Sala: {{ room.name }}
+</h1>
 
+<!-- Enlace de la sala (siempre visible) -->
+<p class="text-lg text-gray-700 mb-4">Comparte este enlace con tus amigos:</p>
 <div class="flex items-center gap-2 mb-6">
   <input id="room-link" type="text" readonly 
     value="{{ join_url }}" 
-    class="flex-1 p-3 border-2 border-purple-300 rounded-xl text-lg"
-  >
-  <button 
-    onclick="copyLink()" 
-    class="bg-purple-600 text-white px-4 py-3 rounded-xl text-lg hover:bg-purple-700"
-  >
+    class="flex-1 p-3 border-2 border-purple-300 rounded-xl text-lg">
+  <button onclick="copyLink()" 
+    class="bg-purple-600 text-white px-4 py-3 rounded-xl text-lg hover:bg-purple-700">
     📋 Copiar
   </button>
 </div>
 
-<p class="text-md text-gray-600">Jugadores actuales: {{ players }}/{{ room.max_players }}</p>
+<!-- Paso 1: formulario para poner nombre -->
+<div id="enter-name">
+  <input type="text" id="player-name" placeholder="Tu nombre" 
+         class="w-full p-3 border-2 border-purple-300 rounded-xl text-lg mb-4">
+  <button id="ready-btn" class="w-full bg-green-600 text-white p-3 rounded-xl text-lg hover:bg-green-700">
+    ✅ Listo
+  </button>
+</div>
+
+<!-- Paso 2: sala de espera -->
+<div id="waiting-room" class="hidden">
+  <p class="text-md text-gray-600 mb-4">Esperando jugadores...</p>
+  <ul id="player-list" class="space-y-2 mb-6"></ul>
+
+  <button id="start-btn" disabled 
+          class="w-full bg-blue-600 text-white p-3 rounded-xl text-lg hover:bg-blue-700">
+    🎮 Empezar partida
+  </button>
+</div>
 
 <script>
 function copyLink() {
@@ -32,6 +46,51 @@ function copyLink() {
     alert("¡Enlace copiado!");
   });
 }
-</script>
 
+let ws;
+const readyBtn = document.getElementById("ready-btn");
+const startBtn = document.getElementById("start-btn");
+const enterDiv = document.getElementById("enter-name");
+const waitDiv = document.getElementById("waiting-room");
+const playerList = document.getElementById("player-list");
+
+readyBtn.onclick = () => {
+    const name = document.getElementById("player-name").value.trim();
+    if (!name) return alert("Escribe tu nombre");
+
+    ws = new WebSocket(`ws://127.0.0.1:8000/ws/{{ room.id }}/${name}`);
+
+    ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+
+        if (data.type === "update_players") {
+            playerList.innerHTML = "";
+            data.players.forEach(p => {
+                const li = document.createElement("li");
+                li.textContent = p;
+                li.className = "p-2 bg-purple-100 rounded";
+                playerList.appendChild(li);
+            });
+
+            if (data.players.length / {{ room.max_players }} >= 0.6) {
+                startBtn.disabled = false;
+            } else {
+                startBtn.disabled = true;
+            }
+        }
+
+        if (data.type === "role") {
+            alert("🎭 Tu rol es: " + data.role);
+        }
+    };
+
+    // cambiar UI: ocultar input nombre, mostrar sala de espera
+    enterDiv.classList.add("hidden");
+    waitDiv.classList.remove("hidden");
+};
+
+startBtn.onclick = () => {
+    ws.send(JSON.stringify({type: "start"}));
+};
+</script>
 {% endblock %}

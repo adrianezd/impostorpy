@@ -1,19 +1,17 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Unirse a {{ room.name }}</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen">
-  <div class="bg-gray-800 rounded-2xl p-6 w-full max-w-md text-center">
-    <h1 class="text-2xl font-bold mb-4">🎮 Unirse a {{ room.name }}</h1>
-    <form action="/join/{{ room.id }}" method="post" class="space-y-4">
-      <input type="text" name="player_name" required placeholder="Tu nombre"
-             class="w-full px-3 py-2 rounded-lg text-black">
-      <button type="submit" class="w-full bg-indigo-600 py-2 rounded-lg">Entrar</button>
-    </form>
-  </div>
-</body>
-</html>
+{% extends "base.html" %}
+{% block title %}Unirse a {{ room.name }}{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-bold text-purple-700 mb-6 text-center">
+  🎭 Unirse a la sala {{ room.name }}
+</h1>
+
+<form action="/room/{{ room.id }}" method="get" class="space-y-4">
+  <input type="hidden" name="room_id" value="{{ room.id }}">
+  <input type="text" name="player_name" placeholder="Tu nombre" required
+         class="w-full p-3 border-2 border-purple-300 rounded-xl text-lg">
+  <button type="submit" 
+          class="w-full bg-purple-600 text-white p-3 rounded-xl text-lg hover:bg-purple-700">
+    🚀 Entrar
+  </button>
+</form>
+{% endblock %}

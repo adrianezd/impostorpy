@@ -1,143 +1,153 @@
-import os, uuid, random
-from fastapi import FastAPI, Request, Form,WebSocket, WebSocketDisconnect
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
+from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
-
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
+import uuid, random
 
 app = FastAPI()
+templates = Jinja2Templates(directory="templates")
 
-rooms = {}  # id -> info de sala
+rooms = {}  # almacena todas las salas activas
 
 
+# ---------------------
+# CLASE ROOM
+# ---------------------
 class Room:
     def __init__(self, name: str, max_players: int):
-        self.id = str(uuid.uuid4())[:6]  # 6 chars aleatorios
+        self.id = str(uuid.uuid4())[:6]  # código único corto
         self.name = name
         self.max_players = max_players
-        self.players = []   # lista de nombres
+        self.players = {}  # player_id -> websocket
         self.roles = {}
         self.started = False
 
+    def add_player(self, player_id: str, websocket: WebSocket):
+        self.players[player_id] = websocket
+
     def assign_roles(self):
+        all_ids = list(self.players.keys())
         num_blancos = 1 + (self.max_players - 5) // 4 if self.max_players > 5 else 1
-        blancos = random.sample(self.players, num_blancos)
-        for p in self.players:
-            self.roles[p] = "BLANCO" if p in blancos else "NORMAL"
+        blancos = random.sample(all_ids, num_blancos)
+
+        for pid in all_ids:
+            self.roles[pid] = "BLANCO" if pid in blancos else "NORMAL"
+
         self.started = True
 
 
+# ---------------------
+# RUTAS NORMALES
+# ---------------------
 @app.get("/", response_class=HTMLResponse)
-async def get(request: Request):
+async def home(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
 
-@app.get("/create_room")
+@app.get("/create_room", response_class=HTMLResponse)
 async def create_room(request: Request, player_name: str, room_name: str, max_players: int):
     room = Room(name=room_name, max_players=max_players)
-    
-    # Asegurarse que el ID sea único
+
+    # comprobar que no se repita el ID
     while room.id in rooms:
         room = Room(name=room_name, max_players=max_players)
-        
-    rooms[room.id] = room
-    
-    base_url = str(request.base_url).strip("/")  # ejemplo: http://127.0.0.1:8000
-    join_url = f"{base_url}/room/{room.id}"
 
+    rooms[room.id] = room
+
+    join_url = f"http://127.0.0.1:8000/room/{room.id}"
     return templates.TemplateResponse("room.html", {
         "request": request,
         "room": room,
         "join_url": join_url,
-        "players": len(room.players)
+        "players": 1
     })
-
-@app.get("/room/{room_id}")
-async def join_room(request: Request, room_id: str):
-    room = rooms.get(room_id)
-    if not room:
-        return HTMLResponse("<h2>❌ Sala no encontrada</h2>", status_code=404)
-
-    return templates.TemplateResponse("waiting.html", {
-        "request": request,
-        "room": room,
-        "players": len(room.players)
-    })
-
-
-@app.get("/join/{room_id}", response_class=HTMLResponse)
-async def join_room(request: Request, room_id: str):
-    room = rooms.get(room_id)
-    if not room:
-        return HTMLResponse("Sala no encontrada ❌", status_code=404)
-    return templates.TemplateResponse("join.html", {"request": request, "room": room})
-
-
-@app.post("/join/{room_id}", response_class=HTMLResponse)
-async def join_room_post(request: Request, room_id: str, player_name: str = Form(...)):
-    room = rooms.get(room_id)
-    if not room:
-        return HTMLResponse("Sala no encontrada ❌", status_code=404)
-    room.players.append(player_name)
-    return RedirectResponse(f"/room/{room_id}", status_code=303)
 
 
 @app.get("/room/{room_id}", response_class=HTMLResponse)
-async def show_room(request: Request, room_id: str):
+async def join_room(request: Request, room_id: str):
     room = rooms.get(room_id)
     if not room:
-        return HTMLResponse("Sala no encontrada ❌", status_code=404)
+        return HTMLResponse("<h1>❌ Sala no encontrada</h1>", status_code=404)
 
     return templates.TemplateResponse("room.html", {
         "request": request,
         "room": room,
-        "join_url": f"http://127.0.0.1:8000/join/{room.id}"
+        "join_url": f"http://127.0.0.1:8000/room/{room.id}",
+        "players": len(room.players)
     })
 
-
-@app.post("/start/{room_id}", response_class=HTMLResponse)
-async def start_game(request: Request, room_id: str):
+@app.get("/room/{room_id}", response_class=HTMLResponse)
+async def join_room(request: Request, room_id: str, player_name: str = None):
     room = rooms.get(room_id)
     if not room:
-        return HTMLResponse("Sala no encontrada ❌", status_code=404)
-    room.assign_roles()
-    return templates.TemplateResponse("results.html", {"request": request, "room": room})
+        return HTMLResponse("<h1>❌ Sala no encontrada</h1>", status_code=404)
 
-async def broadcast_players(room: Room):
-    info = {
-        "players": list(room.players.keys()),
-        "count": len(room.players),
-        "max": room.max_players
-    }
-    for ws in room.players.values():
-        await ws.send_json({"type": "update_players", "data": info})
+    # Si no hay nombre → mostrar formulario de entrada
+    if not player_name:
+        return templates.TemplateResponse("join.html", {
+            "request": request,
+            "room": room
+        })
 
+    # Si ya hay nombre → mostrar pantalla de espera
+    return templates.TemplateResponse("room.html", {
+        "request": request,
+        "room": room,
+        "player_name": player_name
+    })
+
+# ---------------------
+# WEBSOCKETS
+# ---------------------
 @app.websocket("/ws/{room_id}/{player_name}")
 async def websocket_endpoint(websocket: WebSocket, room_id: str, player_name: str):
     await websocket.accept()
-
     room = rooms.get(room_id)
     if not room:
-        await websocket.send_text("Esa sala no existe 🚫")
+        await websocket.send_text("❌ Sala no encontrada")
         await websocket.close()
         return
 
     player_id = str(uuid.uuid4())
     room.add_player(player_id, websocket)
 
-    # Avisar a todos que hay nuevo jugador
+    # Guardar nombres y ready
+    if not hasattr(room, "names"):
+        room.names = {}
+    room.names[player_id] = player_name
+    if not hasattr(room, "ready"):
+        room.ready = set()
+
     await broadcast_players(room)
 
     try:
         while True:
-            msg = await websocket.receive_json()
+            msg = await websocket.receive_text()
+            import json
+            data = json.loads(msg)
 
-            if msg["action"] == "ready":
-                if len(room.players) >= int(room.max_players * 0.6) and not room.started:
+            if data["type"] == "ready":
+                room.ready.add(player_id)
+
+            if data["type"] == "start":
+                # calcular % de jugadores conectados / max_players
+                if len(room.players) / room.max_players >= 0.6 and not room.started:
                     room.assign_roles()
                     for pid, ws in room.players.items():
-                        await ws.send_text(f"Tu rol es: {room.roles[pid]}")
+                        await ws.send_json({"type": "role", "role": room.roles[pid]})
+                    room.started = True  # marcar que la partida ya empezó
+
+
+            await broadcast_players(room)
+
     except WebSocketDisconnect:
         del room.players[player_id]
+        del room.names[player_id]
+        if player_id in room.ready:
+            room.ready.remove(player_id)
         await broadcast_players(room)
+
+
+async def broadcast_players(room):
+    players = list(room.names.values())
+    for ws in room.players.values():
+        await ws.send_json({"type": "update_players", "players": players})
