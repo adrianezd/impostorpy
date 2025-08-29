@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Sala de espera{% endblock %}
+{% block header %}⌛ Sala de espera: {{ room.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <p class="text-lg">Jugadores: <span id="count">{{ players }}</span>/{{ room.max_players }}</p>
+  
+  <ul id="players-list" class="bg-white p-4 rounded-xl shadow">
+    <!-- Aquí se añadirán los jugadores en tiempo real -->
+  </ul>
+
+  <button 
+    id="ready-btn"
+    class="hidden w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-6 rounded-2xl text-xl shadow-lg"
+    onclick="sendReady()"
+  >
+    ✅ Listo
+  </button>
+</div>
+
+<script>
+const ws = new WebSocket(`ws://${window.location.host}/ws/{{ room.id }}/{{ request.query_params.get('player_name','anon') }}`);
+
+ws.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+
+  if (data.type === "update_players") {
+    document.getElementById("count").innerText = data.data.count;
+
+    // lista de jugadores
+    let list = document.getElementById("players-list");
+    list.innerHTML = "";
+    data.data.players.forEach(p => {
+      let li = document.createElement("li");
+      li.textContent = p;
+      li.className = "p-2 border-b";
+      list.appendChild(li);
+    });
+
+    // mostrar botón listo si hay al menos 60%
+    if (data.data.count >= data.data.max * 0.6) {
+      document.getElementById("ready-btn").classList.remove("hidden");
+    }
+  } else if (typeof data === "string" && data.startsWith("Tu rol es:")) {
+    alert(data);
+  }
+};
+
+function sendReady() {
+  ws.send(JSON.stringify({ action: "ready" }));
+}
+</script>
+{% endblock %}

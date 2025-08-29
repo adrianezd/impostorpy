@@ -27,8 +27,11 @@
 function copyLink() {
   let input = document.getElementById("room-link");
   input.select();
-  document.execCommand("copy");
-  alert("¡Enlace copiado!");
+  input.setSelectionRange(0, 99999); // para móviles
+  navigator.clipboard.writeText(input.value).then(() => {
+    alert("¡Enlace copiado!");
+  });
 }
 </script>
+
 {% endblock %}
