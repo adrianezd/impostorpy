@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unirse a {{ room.name }}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen">
+  <div class="bg-gray-800 rounded-2xl p-6 w-full max-w-md text-center">
+    <h1 class="text-2xl font-bold mb-4">🎮 Unirse a {{ room.name }}</h1>
+    <form action="/join/{{ room.id }}" method="post" class="space-y-4">
+      <input type="text" name="player_name" required placeholder="Tu nombre"
+             class="w-full px-3 py-2 rounded-lg text-black">
+      <button type="submit" class="w-full bg-indigo-600 py-2 rounded-lg">Entrar</button>
+    </form>
+  </div>
+</body>
+</html>
