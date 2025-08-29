@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>{% block title %}Juego del Blanco{% endblock %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-400 to-purple-500">
+  <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-lg">
+    <h1 class="text-4xl font-extrabold mb-8 text-center text-purple-600 drop-shadow">
+      {% block header %}🎭 Juego del Blanco{% endblock %}
+    </h1>
+
+    <div>
+      {% block content %}
+      {% endblock %}
+    </div>
+  </div>
+</body>
+</html>

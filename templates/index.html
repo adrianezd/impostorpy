@@ -1,62 +1,48 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <title>Juego del Blanco</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-400 to-purple-500">
-  <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-lg">
-    <h1 class="text-4xl font-extrabold mb-8 text-center text-purple-600 drop-shadow">
-      🎭 Crear Sala
-    </h1>
+{% extends "base.html" %}
 
-    <form action="/create_room" method="get" class="space-y-6">
-      <!-- Nombre del jugador -->
-      <div>
-        <label class="block text-lg font-semibold mb-2 text-gray-700">Tu nombre</label>
-        <input 
-          type="text" 
-          name="player_name" 
-          placeholder="Ej. Ana"
-          required 
-          class="w-full p-4 text-lg border-2 border-blue-300 rounded-2xl focus:ring-4 focus:ring-blue-400 focus:outline-none"
-        >
-      </div>
+{% block title %}Crear Sala - Juego del Blanco{% endblock %}
+{% block header %}🎭 Crear Sala{% endblock %}
 
-      <!-- Nombre de la sala -->
-      <div>
-        <label class="block text-lg font-semibold mb-2 text-gray-700">Nombre de la sala</label>
-        <input 
-          type="text" 
-          name="room_name" 
-          placeholder="Ej. Amigos"
-          required 
-          class="w-full p-4 text-lg border-2 border-purple-300 rounded-2xl focus:ring-4 focus:ring-purple-400 focus:outline-none"
-        >
-      </div>
-
-      <!-- Número de jugadores -->
-      <div>
-        <label class="block text-lg font-semibold mb-2 text-gray-700">Número de jugadores</label>
-        <input 
-          type="number" 
-          name="max_players" 
-          value="5" 
-          min="2"
-          class="w-full p-4 text-lg border-2 border-blue-300 rounded-2xl focus:ring-4 focus:ring-blue-400 focus:outline-none"
-        >
-      </div>
-
-      <!-- Botón -->
-      <button 
-        type="submit"
-        class="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold py-5 px-6 rounded-2xl text-2xl shadow-lg transform active:scale-95 transition"
-      >
-        🚀 Crear Sala
-      </button>
-    </form>
+{% block content %}
+<form action="/create_room" method="get" class="space-y-6">
+  <div>
+    <label class="block text-lg font-semibold mb-2 text-gray-700">Tu nombre</label>
+    <input 
+      type="text" 
+      name="player_name" 
+      placeholder="Ej. Ana"
+      required 
+      class="w-full p-4 text-lg border-2 border-blue-300 rounded-2xl focus:ring-4 focus:ring-blue-400 focus:outline-none"
+    >
   </div>
-</body>
-</html>
+
+  <div>
+    <label class="block text-lg font-semibold mb-2 text-gray-700">Nombre de la sala</label>
+    <input 
+      type="text" 
+      name="room_name" 
+      placeholder="Ej. Amigos"
+      required 
+      class="w-full p-4 text-lg border-2 border-purple-300 rounded-2xl focus:ring-4 focus:ring-purple-400 focus:outline-none"
+    >
+  </div>
+
+  <div>
+    <label class="block text-lg font-semibold mb-2 text-gray-700">Número de jugadores</label>
+    <input 
+      type="number" 
+      name="max_players" 
+      value="5" 
+      min="2"
+      class="w-full p-4 text-lg border-2 border-blue-300 rounded-2xl focus:ring-4 focus:ring-blue-400 focus:outline-none"
+    >
+  </div>
+
+  <button 
+    type="submit"
+    class="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold py-5 px-6 rounded-2xl text-2xl shadow-lg transform active:scale-95 transition"
+  >
+    🚀 Crear Sala
+  </button>
+</form>
+{% endblock %}
